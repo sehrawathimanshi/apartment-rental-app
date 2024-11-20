@@ -1,0 +1,56 @@
+<div class="login-container">
+  <h2>Login</h2>
+  <form (ngSubmit)="onLogin()">
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input
+        type="email"
+        id="email"
+        [(ngModel)]="email"
+        name="email"
+        required
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password:</label>
+      <input
+        type="password"
+        id="password"
+        [(ngModel)]="password"
+        name="password"
+        required
+      />
+    </div>
+
+    <div class="form-group role-selector">
+      <label>
+        <input
+          type="radio"
+          name="role"
+          value="user"
+          [(ngModel)]="role"
+          required
+        />
+        User
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="role"
+          value="landlord"
+          [(ngModel)]="role"
+          required
+        />
+        Landlord
+      </label>
+    </div>
+
+    <button type="submit" class="submit-btn">Login</button>
+  </form>
+  <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
+  <div class="redirect-container">
+    <p>Don't have an account?</p>
+    <button (click)="goToRegister()" class="register-btn">Register</button>
+  </div>
+</div>

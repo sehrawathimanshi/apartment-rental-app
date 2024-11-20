@@ -1,0 +1,51 @@
+<div class="search-container">
+  <button (click)="logout()" class="logout-btn">Logout</button>
+
+  <h2>Apartments</h2>
+
+  <!-- Search form -->
+  <div class="search-form">
+    <label for="location">Location:</label>
+    <input id="location" type="text" [(ngModel)]="searchLocation" placeholder="Search by location" />
+
+    <label for="price" class="price">Max Price:</label>
+    <input id="price" type="number" [(ngModel)]="searchPrice" placeholder="Search by price" />
+  </div>
+
+  <!-- Apartments Table -->
+  <table class="apartment-table">
+    <thead>
+      <tr>
+        <th>Apartment Name</th>
+        <th>Location</th>
+        <th>Price</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let apt of filteredApartments">
+        <td>{{ apt.name }}</td>
+        <td>{{ apt.location }}</td>
+        <td>${{ apt.price }}</td>
+        <td>
+          <div class="comment-section">
+            <h5>Comments</h5>
+            <ul>
+              <li *ngFor="let comment of apt.comments"><b>{{comment?.senderName}}</b> - {{ comment?.comment }}</li>
+            </ul>
+
+            <!-- Comment Input and Button -->
+            <div class="comment-input">
+              <input type="text" #commentInput placeholder="Add a comment" />
+              <button (click)="addComment(apt, commentInput.value); commentInput.value='';">Add Comment</button>
+            </div>
+          </div>
+        </td>
+
+      </tr>
+      <tr *ngIf="filteredApartments.length === 0">
+        <td colspan="3">No apartments found</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

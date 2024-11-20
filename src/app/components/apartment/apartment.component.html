@@ -1,0 +1,58 @@
+<div class="apartment-form">
+  <!-- Logout Button -->
+  <button (click)="logout()" class="logout-btn">Logout</button>
+
+  <h2>Post Apartment</h2>
+
+  <!-- Apartment Creation Form -->
+  <form (ngSubmit)="createApartment()">
+    <div class="form-group">
+      <label for="name">Apartment Name:</label>
+      <input id="name" type="text" [(ngModel)]="apartment.name" name="name" required />
+    </div>
+
+    <div class="form-group">
+      <label for="location">Location:</label>
+      <input id="location" type="text" [(ngModel)]="apartment.location" name="location" required />
+    </div>
+
+    <div class="form-group">
+      <label for="price">Price:</label>
+      <input id="price" type="number" [(ngModel)]="apartment.price" name="price" required />
+    </div>
+
+    <button type="submit" class="submit-btn">Create Apartment</button>
+  </form>
+
+  <!-- Apartments Table -->
+  <div class="apartments-table">
+    <h3>Posted Apartments</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Apartment Name</th>
+          <th>Location</th>
+          <th>Price</th>
+          <th>Comments</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let apt of apartments">
+          <td>{{ apt.name }}</td>
+          <td>{{ apt.location }}</td>
+          <td>{{ apt.price | currency }}</td>
+          <td>
+            <ul>
+              <li *ngFor="let comment of apt.comments">
+                <b>{{ comment?.senderName }}:</b> {{ comment?.comment }}
+              </li>
+            </ul>
+            <!-- Add Comment -->
+            <input type="text" #commentInput placeholder="Add a comment" />
+            <button (click)="addComment(apt, commentInput.value); commentInput.value = '';">Add Comment</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
