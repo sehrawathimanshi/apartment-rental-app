@@ -1,30 +1,32 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { AuthService } from '../../auth.service';
 import { LoginComponent } from './login.component';
+import { AuthService } from '../../auth.service';
+import { Router } from '@angular/router';
+import { ReactiveFormsModule } from '@angular/forms';
+import { of, throwError } from 'rxjs';
+import { ALERTS, ROUTES } from '../../shared/constants/constants';
 
+// Mock AuthService and Router
 describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
-  let authServiceSpy: jasmine.SpyObj<AuthService>;
-  let routerSpy: jasmine.SpyObj<Router>;
+  let mockAuthService: jasmine.SpyObj<AuthService>;
+  let mockRouter: jasmine.SpyObj<Router>;
 
-  beforeEach(async () => {
-    const authServiceMock = jasmine.createSpyObj('AuthService', ['login', 'getRole']);
-    const routerMock = jasmine.createSpyObj('Router', ['navigate']);
+  beforeEach(() => {
+    mockAuthService = jasmine.createSpyObj<AuthService>('AuthService', ['login', 'getRole']);
+    mockRouter = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
-    await TestBed.configureTestingModule({
-      imports: [LoginComponent], // Include standalone component
+    TestBed.configureTestingModule({
+      imports: [ReactiveFormsModule, LoginComponent], // Add LoginComponent to imports
       providers: [
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: Router, useValue: routerMock },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: Router, useValue: mockRouter },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LoginComponent);
     component = fixture.componentInstance;
-    authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
-    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     fixture.detectChanges();
   });
 
@@ -32,47 +34,74 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should display error message if email, password, or role is invalid', () => {
-    authServiceSpy.login.and.returnValue(false);
-
-    component.email = 'test@example.com';
-    component.password = 'wrong-password';
-    component.role = 'user';
-    component.onLogin();
-
-    expect(component.errorMessage).toBe('Invalid email, password, or role!');
-    expect(routerSpy.navigate).not.toHaveBeenCalled();
-  });
-
-  it('should navigate to the post apartment page for landlord role on successful login', () => {
-    authServiceSpy.login.and.returnValue(true);
-    authServiceSpy.getRole.and.returnValue('landlord');
-
-    component.email = 'landlord@example.com';
-    component.password = 'password';
-    component.role = 'landlord';
-    component.onLogin();
-
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/post-apartment']);
-    expect(component.errorMessage).toBe('');
-  });
-
-  it('should navigate to the apartments page for user role on successful login', () => {
-    authServiceSpy.login.and.returnValue(true);
-    authServiceSpy.getRole.and.returnValue('user');
-
-    component.email = 'user@example.com';
-    component.password = 'password';
-    component.role = 'user';
-    component.onLogin();
-
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/apartments']);
-    expect(component.errorMessage).toBe('');
-  });
-
   it('should navigate to the registration page when goToRegister is called', () => {
     component.goToRegister();
+    expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.REGISTER]);
+  });
 
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/register']);
+  it('should display an error message when the form is invalid and login is attempted', () => {
+    component.loginForm.controls['email'].setValue('');
+    component.loginForm.controls['password'].setValue('');
+    component.loginForm.controls['role'].setValue('');
+
+    component.onLogin();
+
+    expect(component.errorMessage).toBe('Please fill in all fields correctly.');
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
+  });
+
+  it('should call AuthService login and navigate to the correct route on successful login for landlord', () => {
+    const email = 'landlord@example.com';
+    const password = 'password123';
+    const role = 'landlord';
+
+    component.loginForm.controls['email'].setValue(email);
+    component.loginForm.controls['password'].setValue(password);
+    component.loginForm.controls['role'].setValue(role);
+
+    mockAuthService.login.and.returnValue(true);
+    mockAuthService.getRole.and.returnValue(role);
+
+    component.onLogin();
+
+    expect(mockAuthService.login).toHaveBeenCalledWith(email, password, role);
+    expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.POST_APARTMENT]);
+    expect(component.errorMessage).toBe('');
+  });
+
+  it('should call AuthService login and navigate to the correct route on successful login for user', () => {
+    const email = 'user@example.com';
+    const password = 'password123';
+    const role = 'user';
+
+    component.loginForm.controls['email'].setValue(email);
+    component.loginForm.controls['password'].setValue(password);
+    component.loginForm.controls['role'].setValue(role);
+
+    mockAuthService.login.and.returnValue(true);
+    mockAuthService.getRole.and.returnValue(role);
+
+    component.onLogin();
+
+    expect(mockAuthService.login).toHaveBeenCalledWith(email, password, role);
+    expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.APARTMENT_LIST]);
+    expect(component.errorMessage).toBe('');
+  });
+
+  it('should display an error message if login fails', () => {
+    const email = 'wrong@example.com';
+    const password = 'wrongpassword';
+    const role = 'user';
+
+    component.loginForm.controls['email'].setValue(email);
+    component.loginForm.controls['password'].setValue(password);
+    component.loginForm.controls['role'].setValue(role);
+
+    mockAuthService.login.and.returnValue(false);
+
+    component.onLogin();
+
+    expect(component.errorMessage).toBe(ALERTS.INVALID);
+    expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
 });

@@ -1,26 +1,35 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
+import { LOCAL_STORAGE, ROUTES } from '../../shared/constants/constants';
 
 @Component({
   selector: 'app-apartment-list',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './apartment-list.component.html',
   styleUrls: ['./apartment-list.component.scss']
 })
 export class ApartmentListComponent implements OnInit {
-  constructor(private authService: AuthService, private router: Router) {}
+  apartments: any[] = []; // Array to hold apartments
+  searchForm: FormGroup;
 
-  apartments: any[] = [];  // Array to hold apartments
-  searchLocation: string = ''; // Search term for location
-  searchPrice: number | null = null; // Search term for price
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private fb: FormBuilder
+  ) {
+    this.searchForm = this.fb.group({
+      location: [''],
+      maxPrice: ['']
+    });
+  }
 
   // Load apartments from localStorage
   ngOnInit(): void {
-    const savedApartments = localStorage.getItem('apartments');
+    const savedApartments = localStorage.getItem(LOCAL_STORAGE.SAVED_APARTMENTS);
     if (savedApartments) {
       this.apartments = JSON.parse(savedApartments);
     }
@@ -28,26 +37,31 @@ export class ApartmentListComponent implements OnInit {
 
   // Filter apartments based on search location and price
   get filteredApartments() {
+    const { location, maxPrice } = this.searchForm.value;
+
     return this.apartments.filter((apt) => {
-      const matchesLocation = this.searchLocation
-        ? apt.location.toLowerCase().includes(this.searchLocation.toLowerCase())
+      const matchesLocation = location
+        ? apt.location.toLowerCase().includes(location.toLowerCase())
         : true;
-      const matchesPrice = this.searchPrice ? apt.price <= this.searchPrice : true;
+      const matchesPrice = maxPrice ? apt.price <= +maxPrice : true;
 
       return matchesLocation && matchesPrice;
     });
   }
 
-  
   addComment(apartment: any, comment: string) {
     if (comment) {
-      apartment.comments.push({senderId:apartment.id, senderName: localStorage.getItem('loggedInUserEmail'), comment: comment});
-      localStorage.setItem('apartments', JSON.stringify(this.apartments)); // Save to localStorage
+      apartment.comments.push({
+        senderId: apartment.id,
+        senderName: localStorage.getItem(LOCAL_STORAGE.LOGIN_USER_EMAIL),
+        comment: comment
+      });
+      localStorage.setItem(LOCAL_STORAGE.SAVED_APARTMENTS, JSON.stringify(this.apartments)); // Save to localStorage
     }
   }
+
   logout() {
     this.authService.logout();
-    this.router.navigate(['/login']); // Navigate to post apartment page
-
+    this.router.navigate([ROUTES.LOGIN]); // Navigate to login page
   }
 }

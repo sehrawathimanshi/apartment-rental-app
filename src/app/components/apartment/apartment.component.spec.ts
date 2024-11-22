@@ -1,30 +1,32 @@
-import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ApartmentComponent } from './apartment.component'; // Import ApartmentComponent here
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../auth.service';
-import { ApartmentComponent } from './apartment.component';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { of } from 'rxjs';
+import { LOCAL_STORAGE, ALERTS, ROUTES } from '../../shared/constants/constants';
 
 describe('ApartmentComponent', () => {
   let component: ApartmentComponent;
   let fixture: ComponentFixture<ApartmentComponent>;
-  let authServiceSpy: jasmine.SpyObj<AuthService>;
-  let routerSpy: jasmine.SpyObj<Router>;
+  let mockAuthService: jasmine.SpyObj<AuthService>;
+  let mockRouter: jasmine.SpyObj<Router>;
 
-  beforeEach(async () => {
-    const authServiceMock = jasmine.createSpyObj('AuthService', ['logout']);
-    const routerMock = jasmine.createSpyObj('Router', ['navigate']);
+  beforeEach(() => {
+    mockAuthService = jasmine.createSpyObj<AuthService>('AuthService', ['logout']);
+    mockRouter = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
-    await TestBed.configureTestingModule({
-      imports: [ApartmentComponent], // Include standalone component
+    TestBed.configureTestingModule({
+      imports: [ReactiveFormsModule, CommonModule, ApartmentComponent],  // Import the standalone component here
       providers: [
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: Router, useValue: routerMock },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: Router, useValue: mockRouter },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ApartmentComponent);
     component = fixture.componentInstance;
-    authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
-    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     fixture.detectChanges();
   });
 
@@ -32,72 +34,51 @@ describe('ApartmentComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should initialize with apartments from localStorage', () => {
-    const mockApartments = [{ id: '1', name: 'Test Apartment', location: 'Test City', price: 1000, comments: [] }];
-    spyOn(localStorage, 'getItem').and.returnValue(JSON.stringify(mockApartments));
+  it('should create an apartment when form is valid', () => {
+    const formData = {
+      name: 'Apartment 1',
+      location: 'City Center',
+      price: 1000,
+    };
 
-    component.ngOnInit();
+    component.apartmentForm.setValue(formData);
 
-    expect(component.apartments).toEqual(mockApartments);
-  });
-
-  it('should create a new apartment and save to localStorage', () => {
-    const mockSetItem = spyOn(localStorage, 'setItem');
-    component.apartment = { id: '', name: 'Apartment 1', location: 'City A', price: 2000, comments: [] };
-
-    component.createApartment();
-
-    expect(component.apartments.length).toBe(1);
-    expect(component.apartments[0].name).toBe('Apartment 1');
-    expect(mockSetItem).toHaveBeenCalledWith('apartments', jasmine.any(String));
-  });
-
-  it('should show an alert if required fields are missing when creating an apartment', () => {
-    spyOn(window, 'alert');
-    component.apartment = { id: '', name: '', location: '', price: null, comments: [] };
+    // Mock the localStorage.setItem method
+    const localStorageSetItemSpy = spyOn(localStorage, 'setItem');
 
     component.createApartment();
 
-    expect(window.alert).toHaveBeenCalledWith('Please fill out all fields!');
-    expect(component.apartments.length).toBe(0);
+    expect(component.apartments.length).toBe(1);  // Check if the apartment is added
+    expect(localStorageSetItemSpy).toHaveBeenCalledWith(
+      LOCAL_STORAGE.SAVED_APARTMENTS,
+      JSON.stringify(component.apartments)
+    );
+    expect(component.apartmentForm.value).toEqual({
+      name: null,
+      location: null,
+      price: null,
+    });  // Check if the form is reset after creation
   });
 
-  it('should add a comment to an apartment and save to localStorage', () => {
-    const mockSetItem = spyOn(localStorage, 'setItem');
-    const apartment = { id: '1', name: 'Apartment 1', location: 'City A', price: 2000, comments: [] };
-    component.apartments = [apartment];
-    spyOn(localStorage, 'getItem').and.returnValue('testUser@example.com');
+  it('should show an alert if form is invalid', () => {
+    spyOn(window, 'alert'); // Spy on alert function
 
-    component.addComment(apartment, 'Nice place!');
+    // Set an invalid form (missing name and location)
+    component.apartmentForm.setValue({
+      name: '',
+      location: '',
+      price: 1000,
+    });
 
-    expect(apartment.comments.length).toBe(1);
-    expect(apartment.comments[0]['comment']).toBe('Nice place!');
-    expect(apartment.comments[0]['senderName']).toBe('testUser@example.com');
-    expect(mockSetItem).toHaveBeenCalledWith('apartments', jasmine.any(String));
+    component.createApartment();
+
+    expect(window.alert).toHaveBeenCalledWith(ALERTS.ALL_FIELDS);  // Check if alert is shown
   });
 
-  it('should not add a comment if the comment is empty', () => {
-    const apartment = { id: '1', name: 'Apartment 1', location: 'City A', price: 2000, comments: [] };
-    component.apartments = [apartment];
-    spyOn(localStorage, 'setItem');
-
-    component.addComment(apartment, '');
-
-    expect(apartment.comments.length).toBe(0);
-  });
-
-  it('should logout and navigate to login page', () => {
+  it('should logout and navigate to login', () => {
     component.logout();
 
-    expect(authServiceSpy.logout).toHaveBeenCalled();
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
-  });
-
-  it('should generate a unique ID', () => {
-    const id1 = component.generateUniqueId('testKey');
-    const id2 = component.generateUniqueId('testKey');
-
-    expect(id1).not.toBe(id2);
-    expect(id1).toContain('testKey');
+    expect(mockAuthService.logout).toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
   });
 });

@@ -1,67 +1,77 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../auth.service';
+import { ALERTS, LOCAL_STORAGE, ROUTES } from '../../shared/constants/constants';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-apartment',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule],
+
   templateUrl: './apartment.component.html',
-  styleUrls: ['./apartment.component.scss']
+  styleUrls: ['./apartment.component.scss'],
 })
 export class ApartmentComponent implements OnInit {
-
-  constructor(private authService: AuthService, private router: Router) {}
-
-  apartment: any = {
-    id: '',
-    name: '',
-    location: '',
-    price: null,
-    comments: [] // Array to store comments
-  };
-
+  apartmentForm: FormGroup;
   apartments: any[] = []; // Array to hold created apartments
 
-  // Load apartments from local storage when the component initializes
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
+  ) {
+    this.apartmentForm = this.fb.group({
+      name: ['', Validators.required],
+      location: ['', Validators.required],
+      price: [null, [Validators.required, Validators.min(0)]],
+    });
+  }
+
   ngOnInit(): void {
-    const savedApartments = localStorage.getItem('apartments');
+    const savedApartments = localStorage.getItem(LOCAL_STORAGE.SAVED_APARTMENTS);
     if (savedApartments) {
       this.apartments = JSON.parse(savedApartments);
     }
   }
 
-  // Function to add a new apartment
-  createApartment() {
-    if (this.apartment.name && this.apartment.location && this.apartment.price) {
-      this.apartments.push({  ...this.apartment,  id: this.generateUniqueId('tolet') });
+  createApartment(): void {
+    if (this.apartmentForm.valid) {
+      const newApartment = {
+        ...this.apartmentForm.value,
+        id: this.generateUniqueId('tolet'),
+        comments: [],
+      };
+      this.apartments.push(newApartment);
 
-      // Save the updated apartments list to localStorage
-      localStorage.setItem('apartments', JSON.stringify(this.apartments));
+      // Save to localStorage
+      localStorage.setItem(LOCAL_STORAGE.SAVED_APARTMENTS, JSON.stringify(this.apartments));
 
       // Reset the form
-      this.apartment = { name: '', location: '', price: null, comments: [] };
+      this.apartmentForm.reset();
     } else {
-      alert('Please fill out all fields!');
+      alert(ALERTS.ALL_FIELDS);
     }
   }
 
-  // Function to add a comment to an apartment
-  addComment(apartment: any, comment: string) {
+  addComment(apartment: any, comment: string): void {
     if (comment) {
-      apartment.comments.push({senderId:apartment.id, senderName: localStorage.getItem('loggedInUserEmail'), comment: comment});
-      localStorage.setItem('apartments', JSON.stringify(this.apartments)); // Save to localStorage
+      apartment.comments.push({
+        senderId: apartment.id,
+        senderName: localStorage.getItem(LOCAL_STORAGE.LOGIN_USER_EMAIL),
+        comment,
+      });
+      localStorage.setItem(LOCAL_STORAGE.SAVED_APARTMENTS, JSON.stringify(this.apartments)); // Save to localStorage
     }
   }
-  generateUniqueId(key: string) {
+
+  generateUniqueId(key: string): string {
     return `${key}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   }
-  
-  logout() {
-    this.authService.logout();
-    this.router.navigate(['/login']); // Navigate to post apartment page
 
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate([ROUTES.LOGIN]); // Navigate to login page
   }
 }

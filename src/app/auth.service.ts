@@ -1,85 +1,71 @@
 import { Injectable } from '@angular/core';
+import { LocalStorageService } from './shared/constants/services/local-storage.service';
+import { LOCAL_STORAGE, ROLES } from './shared/constants/constants';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private isLoggedIn = false; // Tracks if a user or landlord is logged in
-  private landlords: { email: string; password: string }[] = []; // Array to store landlord credentials
-  private users: { email: string; password: string }[] = []; // Array to store user credentials
-  private role: 'user' | 'landlord' | null = null; // Tracks logged-in role
+  private isLoggedIn = false;
+  private landlords: { email: string; password: string }[] = [];
+  private users: { email: string; password: string }[] = [];
+  private role: 'user' | 'landlord' | null = null;
 
-  constructor() {
-    // Load landlords and users from localStorage
-    const savedLandlords = localStorage.getItem('landlords');
-    if (savedLandlords) {
-      this.landlords = JSON.parse(savedLandlords);
-    }
-
-    const savedUsers = localStorage.getItem('users');
-    if (savedUsers) {
-      this.users = JSON.parse(savedUsers);
-    }
+  constructor(private localStorageService: LocalStorageService) {
+    this.landlords = this.localStorageService.getItem('landlords') || [];
+    this.users = this.localStorageService.getItem('users') || [];
   }
 
-  // Register a new landlord or user
   register(email: string, password: string, role: 'user' | 'landlord'): boolean {
-    if (role === 'landlord') {
-      if (this.landlords.some((landlord) => landlord.email === email)) {
-        return false; // Email already exists for landlords
-      }
+    if (role === ROLES.LANDLORD) {
+      if (this.landlords.some((landlord) => landlord.email === email)) return false;
       this.landlords.push({ email, password });
-      localStorage.setItem('landlords', JSON.stringify(this.landlords));
-    } else if (role === 'user') {
-      if (this.users.some((user) => user.email === email)) {
-        return false; // Email already exists for users
-      }
+      this.localStorageService.setItem('landlords', this.landlords);
+    } else if (role === ROLES.USER) {
+      if (this.users.some((user) => user.email === email)) return false;
       this.users.push({ email, password });
-      localStorage.setItem('users', JSON.stringify(this.users));
+      this.localStorageService.setItem('users', this.users);
     }
     return true;
   }
 
   login(email: string, password: string, role: 'user' | 'landlord'): boolean {
-    if (role === 'landlord') {
-      const landlord = this.landlords.find(
-        (l) => l.email === email && l.password === password
-      );
+    if (role === ROLES.LANDLORD) {
+      const landlord = this.landlords.find((l) => l.email === email && l.password === password);
       if (landlord) {
-        this.isLoggedIn = true;
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('role', 'landlord'); // Store the role
+        this.setLoginState(ROLES.LANDLORD, landlord.email);
         return true;
       }
-    } else if (role === 'user') {
-      const user = this.users.find(
-        (u) => u.email === email && u.password === password
-      );
+    } else if (role === ROLES.USER) {
+      const user = this.users.find((u) => u.email === email && u.password === password);
       if (user) {
-        this.isLoggedIn = true;
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('role', 'user'); // Store the role
-        localStorage.setItem('loggedInUserEmail', user.email); // Store the role
-
+        this.setLoginState(ROLES.USER, user.email);
         return true;
       }
     }
     return false;
   }
-  
+
+  private setLoginState(role: 'user' | 'landlord', email: string): void {
+    this.isLoggedIn = true;
+    this.localStorageService.setItem(LOCAL_STORAGE.IS_LOGGED_IN, 'true');
+    this.localStorageService.setItem(LOCAL_STORAGE.ROLE, role);
+    this.localStorageService.setItem(LOCAL_STORAGE.LOGIN_USER_EMAIL, email);
+  }
+
   isAuthenticated(): boolean {
-    return this.isLoggedIn || localStorage.getItem('isLoggedIn') === 'true';
+    return this.isLoggedIn || this.localStorageService.getItem(LOCAL_STORAGE.IS_LOGGED_IN) === 'true';
   }
-  
+
   getRole(): 'user' | 'landlord' | null {
-    return localStorage.getItem('role') as 'user' | 'landlord' | null;
+    return this.localStorageService.getItem(LOCAL_STORAGE.ROLE);
   }
-  
-  // Log out the user or landlord
+
   logout(): void {
     this.isLoggedIn = false;
     this.role = null;
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('role');
+    this.localStorageService.removeItem(LOCAL_STORAGE.IS_LOGGED_IN);
+    this.localStorageService.removeItem(LOCAL_STORAGE.ROLE);
+    this.localStorageService.removeItem(LOCAL_STORAGE.LOGIN_USER_EMAIL);
   }
 }

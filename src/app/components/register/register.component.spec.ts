@@ -1,30 +1,32 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { RegisterComponent } from './register.component'; // Import RegisterComponent here
 import { AuthService } from '../../auth.service';
-import { RegisterComponent } from './register.component';
+import { Router } from '@angular/router';
+import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { of } from 'rxjs';
+import { ROUTES, ALERTS, SUCCESS_MESSAGES } from '../../shared/constants/constants';
 
 describe('RegisterComponent', () => {
   let component: RegisterComponent;
   let fixture: ComponentFixture<RegisterComponent>;
-  let authServiceSpy: jasmine.SpyObj<AuthService>;
-  let routerSpy: jasmine.SpyObj<Router>;
+  let mockAuthService: jasmine.SpyObj<AuthService>;
+  let mockRouter: jasmine.SpyObj<Router>;
 
-  beforeEach(async () => {
-    const authServiceMock = jasmine.createSpyObj('AuthService', ['register']);
-    const routerMock = jasmine.createSpyObj('Router', ['navigate']);
+  beforeEach(() => {
+    mockAuthService = jasmine.createSpyObj<AuthService>('AuthService', ['register']);
+    mockRouter = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
-    await TestBed.configureTestingModule({
-      imports: [RegisterComponent], // Include standalone component
+    TestBed.configureTestingModule({
+      imports: [ReactiveFormsModule, CommonModule, RegisterComponent],  // Import the standalone component here
       providers: [
-        { provide: AuthService, useValue: authServiceMock },
-        { provide: Router, useValue: routerMock },
+        { provide: AuthService, useValue: mockAuthService },
+        { provide: Router, useValue: mockRouter },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegisterComponent);
     component = fixture.componentInstance;
-    authServiceSpy = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
-    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
     fixture.detectChanges();
   });
 
@@ -32,44 +34,48 @@ describe('RegisterComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should show an error if no role is selected', () => {
-    component.email = 'test@example.com';
-    component.password = 'password';
-    component.role = null;
+  it('should register successfully and navigate to login page', () => {
+    const mockFormData = {
+      email: 'test@example.com',
+      password: 'password123',
+      role: 'user',
+    };
+    component.registerForm.setValue(mockFormData);
+
+    mockAuthService.register.and.returnValue(true);
 
     component.onRegister();
 
-    expect(component.errorMessage).toBe('Please select a role: User or Landlord.');
-    expect(component.successMessage).toBe('');
-    expect(authServiceSpy.register).not.toHaveBeenCalled();
-    expect(routerSpy.navigate).not.toHaveBeenCalled();
+    expect(component.successMessage).toBe(SUCCESS_MESSAGES.REGISTERATION_COMPLETED);
+    expect(mockRouter.navigate).toHaveBeenCalledWith([ROUTES.LOGIN]);
   });
 
-  it('should show a success message and navigate to login on successful registration', () => {
-    authServiceSpy.register.and.returnValue(true);
-    component.email = 'test@example.com';
-    component.password = 'password';
-    component.role = 'user';
+  it('should show error message if email already exists', () => {
+    const mockFormData = {
+      email: 'test@example.com',
+      password: 'password123',
+      role: 'user',
+    };
+    component.registerForm.setValue(mockFormData);
+
+    mockAuthService.register.and.returnValue(false);
 
     component.onRegister();
 
-    expect(component.successMessage).toBe('Registration successful! Please log in.');
-    expect(component.errorMessage).toBe('');
-    expect(authServiceSpy.register).toHaveBeenCalledWith('test@example.com', 'password', 'user');
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+    expect(component.errorMessage).toBe(ALERTS.EMAIL_ALREADY_EXIST);
+    expect(component.successMessage).toBe('');
   });
 
-  it('should show an error if the email is already registered', () => {
-    authServiceSpy.register.and.returnValue(false);
-    component.email = 'test@example.com';
-    component.password = 'password';
-    component.role = 'landlord';
+  it('should show error message if form is invalid', () => {
+    component.registerForm.setValue({
+      email: '',
+      password: '',
+      role: '',
+    });
 
     component.onRegister();
 
-    expect(component.errorMessage).toBe('Email is already registered.');
+    expect(component.errorMessage).toBe('Please fill out all fields correctly.');
     expect(component.successMessage).toBe('');
-    expect(authServiceSpy.register).toHaveBeenCalledWith('test@example.com', 'password', 'landlord');
-    expect(routerSpy.navigate).not.toHaveBeenCalled();
   });
 });

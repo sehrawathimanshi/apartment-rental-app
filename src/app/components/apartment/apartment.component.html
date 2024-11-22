@@ -1,27 +1,52 @@
-<div class="apartment-form">
+<div class="apartment-container">
   <!-- Logout Button -->
   <button (click)="logout()" class="logout-btn">Logout</button>
 
   <h2>Post Apartment</h2>
 
   <!-- Apartment Creation Form -->
-  <form (ngSubmit)="createApartment()">
+  <form [formGroup]="apartmentForm" (ngSubmit)="createApartment()">
     <div class="form-group">
       <label for="name">Apartment Name:</label>
-      <input id="name" type="text" [(ngModel)]="apartment.name" name="name" required />
+      <input
+        id="name"
+        type="text"
+        formControlName="name"
+        [ngClass]="{ 'is-invalid': apartmentForm.get('name')?.invalid && apartmentForm.get('name')?.touched }"
+      />
+      <div *ngIf="apartmentForm.get('name')?.invalid && apartmentForm.get('name')?.touched" class="error">
+        <small>Name is required.</small>
+      </div>
     </div>
 
     <div class="form-group">
       <label for="location">Location:</label>
-      <input id="location" type="text" [(ngModel)]="apartment.location" name="location" required />
+      <input
+        id="location"
+        type="text"
+        formControlName="location"
+        [ngClass]="{ 'is-invalid': apartmentForm.get('location')?.invalid && apartmentForm.get('location')?.touched }"
+      />
+      <div *ngIf="apartmentForm.get('location')?.invalid && apartmentForm.get('location')?.touched" class="error">
+        <small>Location is required.</small>
+      </div>
     </div>
 
     <div class="form-group">
       <label for="price">Price:</label>
-      <input id="price" type="number" [(ngModel)]="apartment.price" name="price" required />
+      <input
+        id="price"
+        type="number"
+        formControlName="price"
+        [ngClass]="{ 'is-invalid': apartmentForm.get('price')?.invalid && apartmentForm.get('price')?.touched }"
+      />
+      <div *ngIf="apartmentForm.get('price')?.invalid && apartmentForm.get('price')?.touched" class="error">
+        <small *ngIf="apartmentForm.get('price')?.errors?.['required']">Price is required.</small>
+        <small *ngIf="apartmentForm.get('price')?.errors?.['min']">Price must be greater than or equal to 0.</small>
+      </div>
     </div>
 
-    <button type="submit" class="submit-btn">Create Apartment</button>
+    <button type="submit" [disabled]="apartmentForm.invalid" class="submit-btn">Create Apartment</button>
   </form>
 
   <!-- Apartments Table -->
@@ -47,7 +72,6 @@
                 <b>{{ comment?.senderName }}:</b> {{ comment?.comment }}
               </li>
             </ul>
-            <!-- Add Comment -->
             <input type="text" #commentInput placeholder="Add a comment" />
             <button (click)="addComment(apt, commentInput.value); commentInput.value = '';">Add Comment</button>
           </td>
