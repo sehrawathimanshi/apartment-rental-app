@@ -1,3 +1,10 @@
+#Github Link
+https://github.com/sehrawathimanshi/apartment-rental-app
+
+# Link to access the project
+
+http://apartment-rental.s3-website.ap-south-1.amazonaws.com/
+
 # ApartmentRentalApp
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.11.
